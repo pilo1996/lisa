@@ -22,6 +22,31 @@ plugins.withType(JavaPlugin) {
 }
 
 java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
     withJavadocJar()
     withSourcesJar()
+}
+
+ext.moduleName = 'it.unive.lisa'
+
+compileJava {
+	// this block could be avoided by adding this to the java block:
+	// modularity.inferModulePath = true
+	// but unnamed modules are not taken into account for some reason, 
+	// so the switch must be manual
+    inputs.property('moduleName', moduleName)
+    doFirst {
+        options.compilerArgs = [
+            '--module-path', classpath.asPath
+        ]
+        classpath = files()
+    }
+}
+
+javadoc {
+	inputs.property('moduleName', moduleName)
+	exclude "**/module-info.java"
+    options.modulePath(files(classpath.asPath) as List)
+    options.addBooleanOption('-no-module-directories', true)
 }

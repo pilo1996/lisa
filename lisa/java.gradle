@@ -31,6 +31,10 @@ java {
 ext.moduleName = 'it.unive.lisa'
 
 compileJava {
+	if (JavaVersion.current().isJava9Compatible()) {
+        options.addBooleanOption('html5', true)
+    }
+
 	// this block could be avoided by adding this to the java block:
 	// modularity.inferModulePath = true
 	// but unnamed modules are not taken into account for some reason, 

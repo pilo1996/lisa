@@ -1,11 +1,11 @@
 module it.unive.lisa {
-	requires java.base;
+requires java.base;
 	
-	requires org.apache.logging.log4j;
+	requires transitive org.apache.logging.log4j;
 	requires org.apache.commons.lang3;
+	requires org.apache.commons.text;
 	requires com.fasterxml.jackson.databind;
 	requires gs.core;
-	requires org.apache.commons.text;
 	
 	exports it.unive.lisa;
 	
@@ -26,4 +26,9 @@ module it.unive.lisa {
 	exports it.unive.lisa.symbolic;
 	exports it.unive.lisa.symbolic.heap;
 	exports it.unive.lisa.symbolic.value;
+	
+	exports it.unive.lisa.logging;
+
+	exports it.unive.lisa.outputs;
+	exports it.unive.lisa.outputs.compare;
 }

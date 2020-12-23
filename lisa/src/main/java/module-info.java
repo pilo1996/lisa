@@ -1,5 +1,5 @@
 module it.unive.lisa {
-requires java.base;
+	requires java.base;
 	
 	requires transitive org.apache.logging.log4j;
 	requires org.apache.commons.lang3;
@@ -31,4 +31,6 @@ requires java.base;
 
 	exports it.unive.lisa.outputs;
 	exports it.unive.lisa.outputs.compare;
+	
+	opens it.unive.lisa.outputs to com.fasterxml.jackson.databind;
 }

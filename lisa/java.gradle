@@ -30,27 +30,37 @@ java {
 
 ext.moduleName = 'it.unive.lisa'
 
-compileJava {
-	// this block could be avoided by adding this to the java block:
-	// modularity.inferModulePath = true
-	// but unnamed modules are not taken into account for some reason, 
-	// so the switch must be manual
-    inputs.property('moduleName', moduleName)
-    doFirst {
-        options.compilerArgs = [
-            '--module-path', classpath.asPath
-        ]
-        classpath = files()
-    }
-}
+// this fixes the javadoc search adding the "undefined" prefix to the package name when searching
+final JAVADOC_FIX_SEARCH_STR = '\n\n' +
+'getURLPrefix = function(ui) {\n' +
+'    return \'\';\n' +
+'};\n'
 
 javadoc {
 	if (JavaVersion.current().isJava9Compatible()) {
         options.addBooleanOption('html5', true)
     }
     
+    moduleOptions {
+        addModules = [
+        	'java.base',
+            'org.apache.commons.lang3',
+            'gs.core',
+            'com.fasterxml.jackson.databind',
+        ]
+    }
+    
+    options.with {
+        // links to external docs
+        links "https://docs.oracle.com/en/java/javase/${JavaVersion.current()}/docs/api/"
+    }
+
+    doLast {
+        // append the fix to the file
+        def searchScript = new File(destinationDir.getAbsolutePath() + '/search.js')
+        searchScript.append JAVADOC_FIX_SEARCH_STR
+    }
+    
 	inputs.property('moduleName', moduleName)
 	exclude "**/module-info.java"
-    options.modulePath(files(classpath.asPath) as List)
-    options.addBooleanOption('-no-module-directories', true)
 }

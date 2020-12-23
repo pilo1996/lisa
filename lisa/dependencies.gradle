@@ -9,6 +9,7 @@ eclipse.classpath.file {
         entries.findAll { it.kind == 'lib' }.each { it.entryAttributes['module'] = 'true' }
     }
 }
+modularity.improveEclipseClasspathFile()
 
 dependencies {
     // utils

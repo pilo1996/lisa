@@ -1,0 +1,8 @@
+class Bricks {
+
+    f0() {
+        def a = "a";
+        def b = "b";
+        return a;
+    }
+}

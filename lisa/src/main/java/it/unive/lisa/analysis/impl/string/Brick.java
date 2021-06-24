@@ -77,10 +77,15 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
 
     @Override
     protected Brick wideningAux(Brick other) throws SemanticException {
-        Set<String> s = new HashSet<>(this.strings);
-        s.addAll(other.strings);
+        Set<String> s = null;
 
-        if (s.size() > kS || this.isTop() || other.isTop())
+        if (this.strings != null && other.strings != null) {
+            s = new HashSet<>();
+            s.addAll(this.strings);
+            s.addAll(other.strings);
+        }
+
+        if (s == null || s.size() > kS || this.isTop() || other.isTop())
             return top();
 
         Integer min = this.min < other.min ? this.min : other.min;
@@ -151,7 +156,11 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
         return max == null;
     }
 
-    Brick applyRule3() {
+    private Brick applyRule3() {
+
+        if (strings == null)
+            return new Brick(null, 1, 1);
+
         Set<String> newStrings = new HashSet<>(strings);
 
         if (!isMaxInfinite() && min.equals(max)) {
@@ -175,7 +184,7 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
         }
     }
 
-    List<Brick> applyRule5() {
+    private List<Brick> applyRule5() {
         List<Brick> newList = new LinkedList<>();
 
         if (!isTop() && !isBottom() && min >= 1 && (isMaxInfinite() || max > min)) {
@@ -201,6 +210,7 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
         int startSize;
 
         List<Brick> finalBricks = bricks;
+        List<Brick> tempBricks = new LinkedList<>();
 
         // rule 1
         finalBricks.removeIf((new Brick())::equals);
@@ -208,57 +218,59 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
         do {
             startSize = finalBricks.size();
 
-            List<Brick> newBricks1 = new LinkedList<>();
             // rule 3 (finalBricks --> newBricks1)
             for (Brick b: finalBricks) {
-                newBricks1.add(b.applyRule3());
+                tempBricks.add(b.applyRule3());
             }
+            finalBricks = List.copyOf(tempBricks);
+            tempBricks = new LinkedList<>();
 
-            List<Brick> newBricks2 = new LinkedList<>();
             // rule 5 (newBricks1 --> newBricks2)
-            for (Brick b: newBricks1) {
-                newBricks2.addAll(b.applyRule5());
+            for (Brick b: finalBricks) {
+                tempBricks.addAll(b.applyRule5());
             }
+            finalBricks = List.copyOf(tempBricks);
+            tempBricks = new LinkedList<>();
 
-            List<Brick> newBricks3 = new LinkedList<>();
             // rule 4 (newBricks2 --> newBricks3)
-            if (newBricks2.size() == 1) {
-                newBricks3.addAll(newBricks2);
+            if (finalBricks.size() == 1) {
+                tempBricks = List.copyOf(finalBricks);
             }
-            for(int i = 0; i < newBricks2.size() - 1; i++) {
-                Brick b1 = newBricks2.get(i);
-                Brick b2 = newBricks2.get(i + 1);
+            for(int i = 0; i < finalBricks.size() - 1; i++) {
+                Brick b1 = finalBricks.get(i);
+                Brick b2 = finalBricks.get(i + 1);
 
-                if ((b1.strings == null && b2.strings == null) || b1.strings.equals(b2.strings)) {
+                if ((b1.strings == null && b2.strings == null) || (b1.strings != null && b2.strings != null && b1.strings.equals(b2.strings))) {
                     Integer newMin = b1.min + b2.min;
                     Integer newMax = (b1.isMaxInfinite() || b2.isMaxInfinite()) ? null : b1.max + b2.max;
 
-                    newBricks3.add(new Brick(b1.strings, newMin, newMax));
+                    tempBricks.add(new Brick(b1.strings, newMin, newMax));
                     i++;
                 }
                 else {
-                    newBricks3.add(b1);
-                    if (i == newBricks2.size() - 2) {
-                        newBricks3.add(b2);
+                    tempBricks.add(b1);
+                    if (i == finalBricks.size() - 2) {
+                        tempBricks.add(b2);
                     }
                 }
             }
+            finalBricks = List.copyOf(tempBricks);
+            tempBricks = new LinkedList<>();
 
-            List<Brick> newBricks4 = new LinkedList<>();
-            if (newBricks3.size() == 1) {
-                newBricks4.addAll(newBricks3);
+            if (finalBricks.size() == 1) {
+                tempBricks = List.copyOf(finalBricks);
             }
             // rule 2
-            for(int i = 1; i < newBricks3.size(); i++) {
-                Brick b1 = newBricks3.get(i - 1);
-                Brick b2 = newBricks3.get(i);
+            for(int i = 1; i < finalBricks.size(); i++) {
+                Brick b1 = finalBricks.get(i - 1);
+                Brick b2 = finalBricks.get(i);
 
                 if (!b1.isMaxInfinite() && !b2.isMaxInfinite() && b1.min == 1 && b1.max == 1 && b2.min == 1 && b2.max == 1) {
                     Set<String> newStrings = new HashSet<>();
 
                     if (b1.strings == null || b2.strings == null) {
-                        newBricks4.add(b1);
-                        newBricks4.add(b2);
+                        tempBricks.add(b1);
+                        tempBricks.add(b2);
                     }
                     else {
                         for (String s1: b1.strings) {
@@ -267,12 +279,13 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
                             }
                         }
 
-                        newBricks4.add(new Brick(newStrings, 1, 1));
+                        tempBricks.add(new Brick(newStrings, 1, 1));
                     }
                 }
             }
+            finalBricks = List.copyOf(tempBricks);
+            tempBricks = new LinkedList<>();
 
-            finalBricks = newBricks4;
         } while (finalBricks.size() < startSize);
 
         return finalBricks;

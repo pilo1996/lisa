@@ -118,8 +118,8 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
     }
 
     List<Brick> pad(Bricks other) {
-        List<Brick> l1 = this.bricks;
-        List<Brick> l2 = other.bricks;
+        LinkedList<Brick> l1 = new LinkedList<>(this.bricks);
+        LinkedList<Brick> l2 = new LinkedList<>(other.bricks);
         int n1 = l1.size();
         int n2 = l2.size();
         int n = n2 - n1;

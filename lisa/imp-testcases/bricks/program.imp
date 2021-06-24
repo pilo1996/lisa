@@ -1,6 +1,6 @@
 class Bricks {
 
-    /*f0() {
+    f0() {
         return "Test";
     }
 
@@ -26,6 +26,23 @@ class Bricks {
         return c;
     }
 
+    f3() {
+        def x = "1";
+        def y = "2";
+        def z = "3";
+        def r = "";
+        if (1 == 1) {
+            r = x;
+        }
+        else if (1 == 1) {
+            r = y;
+        }
+        else {
+            r = z;
+        }
+        return r;
+    }
+
     paperExample1() {
 
         def l = "a";
@@ -37,13 +54,12 @@ class Bricks {
         def per = "SELECT TYPECODE, TYPEDESC FROM TYPES WHERE NAME = 'fish' OR NAME = 'meat'";
         query = strcat(strcat(strcat(query, "TYPE IN ("), per), ");");
         return query;
-    }*/
+    }
 
     paperExample2() {
         def x = "a";
-        def i = 10;
         def j = 0;
-        while(j < i) {
+        while(j < 2) {
             x = strcat(strcat("0", x), "1");
             j = j + 1;
         }

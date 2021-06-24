@@ -8,17 +8,19 @@ import it.unive.lisa.symbolic.value.BinaryOperator;
 import it.unive.lisa.symbolic.value.Constant;
 import it.unive.lisa.symbolic.value.UnaryOperator;
 
-import javax.naming.BinaryRefAddr;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
 public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
 
+    // parameter for limiting the length of the number of bricks in a Bricks object, used in widening
+    static final int kL = 10;
+
     List<Brick> bricks;
 
     public Bricks() {
-        new LinkedList<>();
+        bricks = new LinkedList<>();
     }
 
     Bricks(List<Brick> bricks) {
@@ -48,12 +50,30 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
             newList.add(l1.get(i).lub(l2.get(i)));
         }
 
-        return new Bricks(newList);
+        return new Bricks(Brick.normalizeList(newList));
     }
 
     @Override
     protected Bricks wideningAux(Bricks other) throws SemanticException {
-        return null;
+        if ((!this.lessOrEqual(other) && !other.lessOrEqual(this)) ||
+                (this.bricks.size() > kL || other.bricks.size() > kL))
+            return top();
+
+        // w(L1, L2)
+        List<Brick> l1 = this.pad(other);
+        List<Brick> l2 = other.pad(this);
+
+        int n = l1.size();
+        List<Brick> l3 = new LinkedList<>();
+
+        for(int i = 0; i < n; i++) {
+            Brick b1 = l1.get(i);
+            Brick b2 = l2.get(i);
+
+            l3.add(b1.widening(b2));
+        }
+
+        return new Bricks(Brick.normalizeList(l3));
     }
 
     @Override
@@ -110,7 +130,7 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
         List<Brick> newList = new LinkedList<>();
         int emptyBricksAdded = 0;
 
-        for (int i = 0; i < n2 - 1; i++) {
+        for (int i = 0; i < n2; i++) {
             if (emptyBricksAdded >= n) {
                 newList.add(l1.remove(0));
             }
@@ -130,7 +150,7 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
         List<Brick> newList = new LinkedList<>();
         newList.addAll(this.bricks);
         newList.addAll(other.bricks);
-        return new Bricks(newList);
+        return new Bricks(Brick.normalizeList(newList));
     }
 
     @Override
@@ -140,7 +160,11 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
 
     @Override
     protected Bricks evalNonNullConstant(Constant constant, ProgramPoint pp) {
-        return new Bricks(constant.getValue().toString());
+        String s = constant.getValue().toString();
+        if (constant.getValue() instanceof String) {
+            s = s.substring(1, s.length() - 1);
+        }
+        return new Bricks(s);
     }
 
     @Override
@@ -164,10 +188,12 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
         if (isBottom())
             return Lattice.BOTTOM_STRING;
 
-        StringBuilder rep = new StringBuilder("br{");
+        StringBuilder rep = new StringBuilder("{");
 
-        for (Brick brick: bricks) {
-            rep.append(brick.toString()).append(",");
+        for (int i = 0; i < bricks.size(); i++) {
+            rep.append(bricks.get(i).toString());
+            if (i < bricks.size() - 1)
+                rep.append(",");
         }
 
         rep.append("}");

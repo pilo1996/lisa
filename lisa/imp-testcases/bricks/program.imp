@@ -1,8 +1,52 @@
 class Bricks {
 
-    f0() {
-        def a = "a";
-        def b = "b";
-        return a;
+    /*f0() {
+        return "Test";
+    }
+
+    f1() {
+        def a = "Prova ";
+        def b = "Bricks";
+        return strcat(a, b);
+    }
+
+    f2() {
+        def n = "Si";
+        def a = "Prova ";
+        def b = "Bricks";
+        def c = "";
+
+        if (n == "Si") {
+            c = strcat(a, b);
+        }
+        else {
+            c = b;
+        }
+
+        return c;
+    }
+
+    paperExample1() {
+
+        def l = "a";
+        def query = "SELECT $ || (RETAIL/100) FROM INVENTORY WHERE ";
+        if (l != null) {
+            query = strcat(strcat(strcat(query, "WHOLESALE > "), l), " AND ");
+        }
+
+        def per = "SELECT TYPECODE, TYPEDESC FROM TYPES WHERE NAME = 'fish' OR NAME = 'meat'";
+        query = strcat(strcat(strcat(query, "TYPE IN ("), per), ");");
+        return query;
+    }*/
+
+    paperExample2() {
+        def x = "a";
+        def i = 10;
+        def j = 0;
+        while(j < i) {
+            x = strcat(strcat("0", x), "1");
+            j = j + 1;
+        }
+        return x;
     }
 }

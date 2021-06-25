@@ -1,16 +1,16 @@
 package it.unive.lisa.analysis.impl.string;
 
 import it.unive.lisa.analysis.Lattice;
+import it.unive.lisa.analysis.SemanticDomain;
 import it.unive.lisa.analysis.SemanticException;
 import it.unive.lisa.analysis.nonrelational.value.BaseNonRelationalValueDomain;
 import it.unive.lisa.program.cfg.ProgramPoint;
 import it.unive.lisa.symbolic.value.BinaryOperator;
 import it.unive.lisa.symbolic.value.Constant;
+import it.unive.lisa.symbolic.value.TernaryOperator;
 import it.unive.lisa.symbolic.value.UnaryOperator;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
 
@@ -154,6 +154,35 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
     }
 
     @Override
+    protected SemanticDomain.Satisfiability satisfiesBinaryExpression(BinaryOperator operator, Bricks left, Bricks right, ProgramPoint pp) {
+        switch(operator){
+            case STRING_CONCAT:
+                return SemanticDomain.Satisfiability.SATISFIED;
+            case STRING_CONTAINS:
+                if(right.bricks.size() == 1){
+                    Brick c = right.bricks.get(0);
+                    if(c.strings.size() == 1)
+                        for (String s : c.strings) {
+                            if (s.length() == 1)
+                                return SemanticDomain.Satisfiability.SATISFIED;
+                        }
+                }
+                break;
+        }
+        return SemanticDomain.Satisfiability.NOT_SATISFIED;
+    }
+
+    @Override
+    protected SemanticDomain.Satisfiability satisfiesTernaryExpression(TernaryOperator operator, Bricks left, Bricks middle, Bricks right, ProgramPoint pp) {
+        if (operator == TernaryOperator.STRING_SUBSTRING) {
+            if(!(left.bricks.size() == 1 || left.bricks.get(0).strings.size() == 1) || !(right.bricks.size() == 1 || right.bricks.get(0).strings.size() == 1))
+                return SemanticDomain.Satisfiability.NOT_SATISFIED;
+            return SemanticDomain.Satisfiability.SATISFIED;
+        }
+        return super.satisfiesTernaryExpression(operator, left, middle, right, pp);
+    }
+
+    @Override
     protected Bricks evalNullConstant(ProgramPoint pp) {
         return new Bricks().top();
     }
@@ -176,7 +205,46 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
     protected Bricks evalBinaryExpression(BinaryOperator operator, Bricks left, Bricks right, ProgramPoint pp) {
         if (operator == BinaryOperator.STRING_CONCAT)
             return left.add(right);
+        if(operator == BinaryOperator.STRING_CONTAINS){
+            CharSequence c = (CharSequence) right.bricks.get(0).strings.toArray()[0];
+            boolean check = false;
+            for (Brick bl : left.bricks) {
+                if(bl.min >= 1 && (bl.isMaxInfinite() || bl.max <= bl.min)){
+                    for (String s : bl.strings)
+                        check = s.contains(c);
+                    if(check)
+                        return new Bricks("TRUE");
+                }
+            }
+            return new Bricks("FALSE");
+        }
+        return new Bricks().top();
+    }
 
+    @Override
+    protected Bricks evalTernaryExpression(TernaryOperator operator, Bricks left, Bricks middle, Bricks right, ProgramPoint pp) {
+        if (operator == TernaryOperator.STRING_SUBSTRING) {
+            List<Brick> start = Brick.normalizeList(middle.bricks);
+            if((start.get(0).isMaxInfinite() || start.get(0).max > 0) && start.get(0).min == 0)
+                return new Bricks().top();
+            int e = (int) right.bricks.get(0).strings.toArray()[0];
+            for (String s : start.get(0).strings){
+                if(s.length() < e)
+                    return new Bricks().top();
+            }
+            //We can pack all possible substrings in a new abstract value
+            List<Brick> allSubstrings = new LinkedList<>();
+            for (Brick b : start) {
+                for(String s : b.strings){
+                    for (int i = 0; i < s.length(); i++) {
+                        for (int j = i+1; j < s.length(); j++) {
+                            allSubstrings.add(new Brick(s.substring(i, j)));
+                        }
+                    }
+                }
+            }
+            return new Bricks(allSubstrings);
+        }
         return new Bricks().top();
     }
 

@@ -68,7 +68,7 @@ class Bricks {
 
     // OTHER TESTS
 
-    containsTest() {
+    fullTest() {
         // string
         def r = "prova";
 
@@ -109,6 +109,11 @@ class Bricks {
         }
         else {
             r = "test3-false";
+        }
+
+        // while (always false)
+        while (strcon("abc", "d")) {
+            r = "test-while-false";
         }
 
         return r;

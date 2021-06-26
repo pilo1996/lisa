@@ -26,7 +26,7 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
     }
 
     Brick(Set<String> strings, Index min, Index max) {
-        if (min == null)
+        if (min.equals(Index.INFINITY))
             throw new IllegalArgumentException("'min' cannot be infinite");
 
         this.strings = strings;

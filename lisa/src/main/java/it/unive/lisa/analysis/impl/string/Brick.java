@@ -11,8 +11,8 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
     // parameter for limiting the min-max range in a brick, used in widening
     private static final int kI = 10;
 
-    // parameter for limiting the length of each string of a brick, used in widening
-    private static final int kS = 200;
+    // parameter for limiting the number of strings contained in a brick, used in widening
+    private static final int kS = 20;
 
     Set<String> strings;
     Index min;

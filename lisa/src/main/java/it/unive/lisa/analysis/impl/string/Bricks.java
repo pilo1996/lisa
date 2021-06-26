@@ -166,42 +166,36 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
             boolean satisfied;
             boolean unknown = false;
 
-            if (left.isBottom() || right.isTop()) {
-                return SemanticDomain.Satisfiability.SATISFIED;
-            }
-
             if (right.isChar()) {
                 String c = right.getString();
 
-                for (Brick b: Brick.normalizeList(left.bricks)) {
-                    if (b.min.equals(1) && b.max.equals(1)) {
-                        satisfied = true;
-                        for (String s: b.strings) {
-                            if (!s.contains(c)) {
-                                satisfied = false;
+                for (Brick brick : left.bricks) {
+                    if (brick.min.equals(0)) {
+                        for (String string : brick.strings) {
+                            if (string.contains(c)) {
+                                unknown = true;
                                 break;
                             }
-                            else {
-                                unknown = true;
-                            }
-                        }
-                        if (satisfied) {
-                            return SemanticDomain.Satisfiability.SATISFIED;
                         }
                     }
                     else {
-                        for (String s: b.strings) {
-                            if (s.contains(c)) {
-                                unknown = true;
+                        satisfied = true;
+                        for (String string : brick.strings) {
+                            if (!string.contains(c)) {
+                                satisfied = false;
                                 break;
                             }
+                            unknown = true;
                         }
+
+                        if (satisfied)
+                            return SemanticDomain.Satisfiability.SATISFIED;
                     }
                 }
 
-
                 return unknown ? SemanticDomain.Satisfiability.UNKNOWN : SemanticDomain.Satisfiability.NOT_SATISFIED;
             }
+
             return SemanticDomain.Satisfiability.UNKNOWN;
         }
 
@@ -231,27 +225,10 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
     }
 
     @Override
-    protected Bricks evalUnaryExpression(UnaryOperator operator, Bricks arg, ProgramPoint pp) {
-        return super.evalUnaryExpression(operator, arg, pp);
-    }
-
-    @Override
     protected Bricks evalBinaryExpression(BinaryOperator operator, Bricks left, Bricks right, ProgramPoint pp) {
         if (operator == BinaryOperator.STRING_CONCAT)
             return left.add(right);
-//        if(operator == BinaryOperator.STRING_CONTAINS){
-//            CharSequence c = (CharSequence) right.bricks.get(0).strings.toArray()[0];
-//            boolean check = false;
-//            for (Brick bl : left.bricks) {
-//                if(bl.min >= 1 && (bl.isMaxInfinite() || bl.max <= bl.min)){
-//                    for (String s : bl.strings)
-//                        check = s.contains(c);
-//                    if(check)
-//                        return new Bricks("TRUE");
-//                }
-//            }
-//            return new Bricks("FALSE");
-//        }
+
         return new Bricks().top();
     }
 

@@ -175,7 +175,7 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
                 String c = right.getString();
 
                 for (Brick b: Brick.normalizeList(left.bricks)) {
-                    if (b.min == 1 && !b.isMaxInfinite() && b.max == 1) {
+                    if (b.min.equals(1) && b.max.equals(1)) {
                         satisfied = true;
                         for (String s: b.strings) {
                             if (!s.contains(c)) {
@@ -216,11 +216,11 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
 
     @Override
     protected Bricks evalNonNullConstant(Constant constant, ProgramPoint pp) {
-        String s = constant.getValue().toString();
         if (constant.getValue() instanceof String) {
-            s = s.substring(1, s.length() - 1);
+            String s = (String) constant.getValue();
+            return new Bricks(s.substring(1, s.length() - 1));
         }
-        return new Bricks(s);
+        return top();
     }
 
     @Override
@@ -252,7 +252,7 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
     protected Bricks evalTernaryExpression(TernaryOperator operator, Bricks left, Bricks middle, Bricks right, ProgramPoint pp) {
         if (operator == TernaryOperator.STRING_SUBSTRING) {
             List<Brick> start = Brick.normalizeList(middle.bricks);
-            if((start.get(0).isMaxInfinite() || start.get(0).max > 0) && start.get(0).min == 0)
+            if(start.get(0).max.gt(0) && start.get(0).min.equals(0))
                 return new Bricks().top();
             int e = (int) right.bricks.get(0).strings.toArray()[0];
             for (String s : start.get(0).strings){

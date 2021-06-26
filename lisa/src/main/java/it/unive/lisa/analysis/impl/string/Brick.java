@@ -2,8 +2,8 @@ package it.unive.lisa.analysis.impl.string;
 
 import it.unive.lisa.analysis.Lattice;
 import it.unive.lisa.analysis.SemanticException;
+import it.unive.lisa.analysis.impl.string.utils.Index;
 import it.unive.lisa.analysis.nonrelational.value.BaseNonRelationalValueDomain;
-import org.apache.commons.lang3.NotImplementedException;
 
 import java.util.*;
 
@@ -15,17 +15,17 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
     private static final int kS = 200;
 
     Set<String> strings;
-    Integer min;
-    Integer max;
+    Index min;
+    Index max;
 
     // default Brick is the empty brick
     Brick() {
         this.strings = new HashSet<>();
-        this.min = 0;
-        this.max = 0;
+        this.min = new Index(0);
+        this.max = new Index(0);
     }
 
-    Brick(Set<String> strings, Integer min, Integer max) {
+    Brick(Set<String> strings, Index min, Index max) {
         if (min == null)
             throw new IllegalArgumentException("'min' cannot be infinite");
 
@@ -37,8 +37,8 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
     Brick(String string) {
         this.strings = new HashSet<>();
         strings.add(string);
-        this.min = 1;
-        this.max = 1;
+        this.min = new Index(1);
+        this.max = new Index(1);
     }
 
     @Override
@@ -50,8 +50,8 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
             newStrings.addAll(other.strings);
         }
 
-        Integer newMin = this.min <= other.min ? this.min : other.min;
-        Integer newMax = (this.isMaxInfinite() || other.isMaxInfinite()) ? null : this.max >= other.max ? this.max : other.max;
+        Index newMin = Index.min(this.min, other.min);
+        Index newMax = Index.max(this.max, other.max);
 
         return new Brick(newStrings, newMin, newMax);
     }
@@ -69,8 +69,8 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
             newStrings.addAll(other.strings);
         }
 
-        Integer newMin = this.min >= other.min ? this.min : other.min;
-        Integer newMax = this.isMaxInfinite() ? other.max : other.isMaxInfinite() || this.max < other.max ? this.max : other.max;
+        Index newMin = Index.max(this.min, other.min);
+        Index newMax = Index.min(this.max, other.max);
 
         return new Brick(newStrings, newMin, newMax);
     }
@@ -88,14 +88,11 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
         if (s == null || s.size() > kS || this.isTop() || other.isTop())
             return top();
 
-        Integer min = this.min < other.min ? this.min : other.min;
-        Integer max;
-        if (this.isMaxInfinite() || other.isMaxInfinite()) max = null;
-        else if (this.max > other.max) max = this.max;
-        else max = other.max;
+        Index min = Index.min(this.min, other.min);
+        Index max = Index.max(this.max, other.max);
 
-        if (max == null || max - min > kI)
-            return new Brick(s, 0, null);
+        if (max == Index.INFINITY || max.minus(min).gt(kI))
+            return new Brick(s, new Index(0), Index.INFINITY);
         else
             return new Brick(s, min, max);
     }
@@ -115,29 +112,29 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
         }
 
         // Checks min and max parameters
-        return this.min >= other.min && (other.isMaxInfinite() || (!this.isMaxInfinite() && this.max <= other.max));
+        return this.min.ge(other.min) && this.max.le(other.max);
     }
 
     @Override
     public Brick top() {
-        return new Brick(null, 0, null);
+        return new Brick(null, new Index(0), Index.INFINITY);
     }
 
     @Override
     public Brick bottom() {
-        return new Brick(new HashSet<>(), 1, 0);
+        return new Brick(new HashSet<>(), new Index(1), new Index(0));
     }
 
     @Override
     public boolean isTop() {
-        return strings == null && min == 0 && isMaxInfinite();
+        return strings == null && min.equals(0) && max == Index.INFINITY;
     }
 
     @Override
     public boolean isBottom() {
-        return (strings != null && strings.isEmpty() && !(min == 0 && !isMaxInfinite() && max == 0))
-                || (!isMaxInfinite() && max < min)
-                || (strings != null && !strings.isEmpty() && min == 0 && !isMaxInfinite() && max == 0);
+        return (strings != null && strings.isEmpty() && !(min.equals(0) && max.equals(0)))
+                || max.lt(min)
+                || (strings != null && !strings.isEmpty() && min.equals(0) && max.equals(0));
     }
 
     @Override
@@ -149,22 +146,18 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
             return Lattice.BOTTOM_STRING;
 
         return String.format("%s(%s,%s)",
-                strings == null ? "K" : strings.toString(), min, isMaxInfinite() ? "INF" : max);
-    }
-
-    Boolean isMaxInfinite() {
-        return max == null;
+                strings == null ? "K" : strings.toString(), min, max);
     }
 
     private Brick applyRule3() {
 
         if (strings == null)
-            return new Brick(null, 1, 1);
+            return new Brick(null, new Index(1), new Index(1));
 
         Set<String> newStrings = new HashSet<>(strings);
 
-        if (!isMaxInfinite() && min.equals(max)) {
-            for (int i = 0; i < min - 1; i++) {
+        if (min.equals(max)) {
+            for (int i = 0; i < min.getInteger() - 1; i++) {
                 Set<String> temp = new HashSet<>();
 
                 for (String s1: newStrings) {
@@ -177,7 +170,7 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
                 newStrings.addAll(temp);
             }
 
-            return new Brick(newStrings, 1, 1);
+            return new Brick(newStrings, new Index(1), new Index(1));
         }
         else {
             return this;
@@ -187,9 +180,9 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
     private List<Brick> applyRule5() {
         List<Brick> newList = new LinkedList<>();
 
-        if (!isTop() && !isBottom() && min >= 1 && (isMaxInfinite() || max > min)) {
+        if (!isTop() && !isBottom() && min.ge(1) && max.ge(min)) {
             newList.add((new Brick(strings, min, min)).applyRule3());
-            newList.add(new Brick(strings, 0, max - min));
+            newList.add(new Brick(strings, new Index(0), max.minus(min)));
         }
         else {
             newList.add(this);
@@ -241,8 +234,8 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
                 Brick b2 = finalBricks.get(i + 1);
 
                 if ((b1.strings == null && b2.strings == null) || (b1.strings != null && b2.strings != null && b1.strings.equals(b2.strings))) {
-                    Integer newMin = b1.min + b2.min;
-                    Integer newMax = (b1.isMaxInfinite() || b2.isMaxInfinite()) ? null : b1.max + b2.max;
+                    Index newMin = b1.min.plus(b2.min);
+                    Index newMax = b1.max.plus(b2.max);
 
                     tempBricks.add(new Brick(b1.strings, newMin, newMax));
                     i++;
@@ -265,7 +258,7 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
                 Brick b1 = finalBricks.get(i - 1);
                 Brick b2 = finalBricks.get(i);
 
-                if (!b1.isMaxInfinite() && !b2.isMaxInfinite() && b1.min == 1 && b1.max == 1 && b2.min == 1 && b2.max == 1) {
+                if (b1.min.equals(1) && b1.max.equals(1) && b2.min.equals(1) && b2.max.equals(1)) {
                     Set<String> newStrings = new HashSet<>();
 
                     if (b1.strings == null || b2.strings == null) {
@@ -279,7 +272,7 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
                             }
                         }
 
-                        tempBricks.add(new Brick(newStrings, 1, 1));
+                        tempBricks.add(new Brick(newStrings, new Index(1), new Index(1)));
                     }
                 }
             }

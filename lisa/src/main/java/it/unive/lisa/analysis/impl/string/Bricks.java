@@ -3,12 +3,11 @@ package it.unive.lisa.analysis.impl.string;
 import it.unive.lisa.analysis.Lattice;
 import it.unive.lisa.analysis.SemanticDomain;
 import it.unive.lisa.analysis.SemanticException;
+import it.unive.lisa.analysis.impl.numeric.Parity;
 import it.unive.lisa.analysis.nonrelational.value.BaseNonRelationalValueDomain;
+import it.unive.lisa.analysis.nonrelational.value.ValueEnvironment;
 import it.unive.lisa.program.cfg.ProgramPoint;
-import it.unive.lisa.symbolic.value.BinaryOperator;
-import it.unive.lisa.symbolic.value.Constant;
-import it.unive.lisa.symbolic.value.TernaryOperator;
-import it.unive.lisa.symbolic.value.UnaryOperator;
+import it.unive.lisa.symbolic.value.*;
 
 import java.util.*;
 
@@ -153,33 +152,61 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
         return new Bricks(Brick.normalizeList(newList));
     }
 
-    @Override
-    protected SemanticDomain.Satisfiability satisfiesBinaryExpression(BinaryOperator operator, Bricks left, Bricks right, ProgramPoint pp) {
-        switch(operator){
-            case STRING_CONCAT:
-                return SemanticDomain.Satisfiability.SATISFIED;
-            case STRING_CONTAINS:
-                if(right.bricks.size() == 1){
-                    Brick c = right.bricks.get(0);
-                    if(c.strings.size() == 1)
-                        for (String s : c.strings) {
-                            if (s.length() == 1)
-                                return SemanticDomain.Satisfiability.SATISFIED;
-                        }
-                }
-                break;
-        }
-        return SemanticDomain.Satisfiability.NOT_SATISFIED;
+    private boolean isChar() {
+        return bricks.size() == 1 && bricks.get(0).strings.size() == 1 && ((String) bricks.get(0).strings.toArray()[0]).length() == 1;
+    }
+
+    private String getString() {
+        return isChar() ? (String) bricks.get(0).strings.toArray()[0] : null;
     }
 
     @Override
-    protected SemanticDomain.Satisfiability satisfiesTernaryExpression(TernaryOperator operator, Bricks left, Bricks middle, Bricks right, ProgramPoint pp) {
-        if (operator == TernaryOperator.STRING_SUBSTRING) {
-            if(!(left.bricks.size() == 1 || left.bricks.get(0).strings.size() == 1) || !(right.bricks.size() == 1 || right.bricks.get(0).strings.size() == 1))
-                return SemanticDomain.Satisfiability.NOT_SATISFIED;
-            return SemanticDomain.Satisfiability.SATISFIED;
+    protected SemanticDomain.Satisfiability satisfiesBinaryExpression(BinaryOperator operator, Bricks left, Bricks right, ProgramPoint pp) {
+
+        if (operator == BinaryOperator.STRING_CONTAINS) {
+            boolean satisfied;
+            boolean unknown = false;
+
+            if (left.isBottom() || right.isTop()) {
+                return SemanticDomain.Satisfiability.SATISFIED;
+            }
+
+            if (right.isChar()) {
+                String c = right.getString();
+
+                for (Brick b: Brick.normalizeList(left.bricks)) {
+                    if (b.min == 1 && !b.isMaxInfinite() && b.max == 1) {
+                        satisfied = true;
+                        for (String s: b.strings) {
+                            if (!s.contains(c)) {
+                                satisfied = false;
+                                break;
+                            }
+                            else {
+                                unknown = true;
+                            }
+                        }
+                        if (satisfied) {
+                            return SemanticDomain.Satisfiability.SATISFIED;
+                        }
+                    }
+                    else {
+                        for (String s: b.strings) {
+                            if (s.contains(c)) {
+                                unknown = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+
+                return unknown ? SemanticDomain.Satisfiability.UNKNOWN : SemanticDomain.Satisfiability.NOT_SATISFIED;
+            }
+            return SemanticDomain.Satisfiability.UNKNOWN;
         }
-        return super.satisfiesTernaryExpression(operator, left, middle, right, pp);
+
+        return super.satisfiesBinaryExpression(operator, left, right, pp);
     }
 
     @Override
@@ -205,19 +232,19 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
     protected Bricks evalBinaryExpression(BinaryOperator operator, Bricks left, Bricks right, ProgramPoint pp) {
         if (operator == BinaryOperator.STRING_CONCAT)
             return left.add(right);
-        if(operator == BinaryOperator.STRING_CONTAINS){
-            CharSequence c = (CharSequence) right.bricks.get(0).strings.toArray()[0];
-            boolean check = false;
-            for (Brick bl : left.bricks) {
-                if(bl.min >= 1 && (bl.isMaxInfinite() || bl.max <= bl.min)){
-                    for (String s : bl.strings)
-                        check = s.contains(c);
-                    if(check)
-                        return new Bricks("TRUE");
-                }
-            }
-            return new Bricks("FALSE");
-        }
+//        if(operator == BinaryOperator.STRING_CONTAINS){
+//            CharSequence c = (CharSequence) right.bricks.get(0).strings.toArray()[0];
+//            boolean check = false;
+//            for (Brick bl : left.bricks) {
+//                if(bl.min >= 1 && (bl.isMaxInfinite() || bl.max <= bl.min)){
+//                    for (String s : bl.strings)
+//                        check = s.contains(c);
+//                    if(check)
+//                        return new Bricks("TRUE");
+//                }
+//            }
+//            return new Bricks("FALSE");
+//        }
         return new Bricks().top();
     }
 
@@ -280,5 +307,22 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
     @Override
     public int hashCode() {
         return Objects.hash(bricks);
+    }
+
+    @Override
+    protected ValueEnvironment<Bricks> assumeBinaryExpression(
+            ValueEnvironment<Bricks> environment, BinaryOperator operator, ValueExpression left,
+            ValueExpression right, ProgramPoint pp) throws SemanticException {
+        switch (operator) {
+            case COMPARISON_EQ:
+            case STRING_CONCAT:
+                if (left instanceof Identifier)
+                    environment = environment.assign((Identifier) left, right, pp);
+                else if (right instanceof Identifier)
+                    environment = environment.assign((Identifier) right, left, pp);
+                return environment;
+            default:
+                return environment;
+        }
     }
 }

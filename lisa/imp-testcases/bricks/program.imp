@@ -43,6 +43,22 @@ class Bricks {
         return r;
     }
 
+    concatTest() {
+        def x = "a";
+        def y = "b";
+        return x + y;
+    }
+
+    containsTest() {
+        def r = "prova";
+
+        if (strcon("abc", "a")) {
+            r = "test";
+        }
+
+        return r;
+    }
+
     paperExample1() {
 
         def l = "a";

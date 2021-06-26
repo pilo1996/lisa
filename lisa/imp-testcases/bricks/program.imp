@@ -1,6 +1,6 @@
 class Bricks {
 
-    f0() {
+    /*f0() {
         return "Test";
     }
 
@@ -43,22 +43,6 @@ class Bricks {
         return r;
     }
 
-    concatTest() {
-        def x = "a";
-        def y = "b";
-        return x + y;
-    }
-
-    containsTest() {
-        def r = "prova";
-
-        if (strcon("abc", "a")) {
-            r = "test";
-        }
-
-        return r;
-    }
-
     paperExample1() {
 
         def l = "a";
@@ -80,5 +64,53 @@ class Bricks {
             j = j + 1;
         }
         return x;
+    }*/
+
+    // OTHER TESTS
+
+    containsTest() {
+        // string
+        def r = "prova";
+
+        // number
+        def n = 3;
+
+        // concat
+        def c = strcat("aaa", "bb");
+
+        // substring
+        def s = "a";
+
+        if (true) {
+            s = "12345678";
+        }
+        else {
+            s = "asdfg";
+        }
+
+        s = strsub(s, 2, 4);
+
+        // if always true
+        if (strcon(s, "a")) {
+            r = "test1";
+        }
+
+        // if-else always true
+        if (strcon("abc", "a")) {
+            r = "test2-true";
+        }
+        else {
+            r = "test2-false";
+        }
+
+        // if-else always false
+        if (strcon("abc", "d")) {
+            r = "test3-true";
+        }
+        else {
+            r = "test3-false";
+        }
+
+        return r;
     }
 }

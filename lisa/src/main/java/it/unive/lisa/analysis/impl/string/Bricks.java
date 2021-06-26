@@ -3,9 +3,8 @@ package it.unive.lisa.analysis.impl.string;
 import it.unive.lisa.analysis.Lattice;
 import it.unive.lisa.analysis.SemanticDomain;
 import it.unive.lisa.analysis.SemanticException;
-import it.unive.lisa.analysis.impl.numeric.Parity;
+import it.unive.lisa.analysis.impl.string.utils.Index;
 import it.unive.lisa.analysis.nonrelational.value.BaseNonRelationalValueDomain;
-import it.unive.lisa.analysis.nonrelational.value.ValueEnvironment;
 import it.unive.lisa.program.cfg.ProgramPoint;
 import it.unive.lisa.symbolic.value.*;
 
@@ -116,7 +115,7 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
         return false;
     }
 
-    List<Brick> pad(Bricks other) {
+    private List<Brick> pad(Bricks other) {
         LinkedList<Brick> l1 = new LinkedList<>(this.bricks);
         LinkedList<Brick> l2 = new LinkedList<>(other.bricks);
         int n1 = l1.size();
@@ -216,9 +215,17 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
 
     @Override
     protected Bricks evalNonNullConstant(Constant constant, ProgramPoint pp) {
+
+        if (constant.getValue() instanceof Integer) {
+            return new Bricks((constant.getValue()).toString());
+        }
+        if (constant.getValue() instanceof Number) {
+            return new Bricks((constant.getValue()).toString());
+        }
         if (constant.getValue() instanceof String) {
             String s = (String) constant.getValue();
-            return new Bricks(s.substring(1, s.length() - 1));
+            s = s.substring(1, s.length() - 1);
+            return new Bricks(s);
         }
         return top();
     }
@@ -251,27 +258,29 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
     @Override
     protected Bricks evalTernaryExpression(TernaryOperator operator, Bricks left, Bricks middle, Bricks right, ProgramPoint pp) {
         if (operator == TernaryOperator.STRING_SUBSTRING) {
-            List<Brick> start = Brick.normalizeList(middle.bricks);
-            if(start.get(0).max.gt(0) && start.get(0).min.equals(0))
-                return new Bricks().top();
-            int e = (int) right.bricks.get(0).strings.toArray()[0];
-            for (String s : start.get(0).strings){
-                if(s.length() < e)
-                    return new Bricks().top();
-            }
-            //We can pack all possible substrings in a new abstract value
-            List<Brick> allSubstrings = new LinkedList<>();
-            for (Brick b : start) {
-                for(String s : b.strings){
-                    for (int i = 0; i < s.length(); i++) {
-                        for (int j = i+1; j < s.length(); j++) {
-                            allSubstrings.add(new Brick(s.substring(i, j)));
-                        }
-                    }
+            List<Brick> brickList = Brick.normalizeList(left.bricks);
+            Brick brick = brickList.get(0);
+            int begin = Integer.parseInt((String) middle.bricks.get(0).strings.toArray()[0]);
+            int end = Integer.parseInt((String) right.bricks.get(0).strings.toArray()[0]);
+
+            if (brick.min.equals(1) && brick.max.equals(1)) {
+                for (String s: brick.strings) {
+                    if (s.length() < end)
+                        return new Bricks().top();
                 }
+
+                Set<String> substrings = new HashSet<>();
+                for (String string : brick.strings) {
+                    substrings.add(string.substring(begin, end));
+                }
+
+                List<Brick> newList = new LinkedList<>(brickList);
+                newList.set(0, new Brick(substrings, new Index(1), new Index(1)));
+
+                return new Bricks(newList);
             }
-            return new Bricks(allSubstrings);
         }
+
         return new Bricks().top();
     }
 
@@ -307,22 +316,5 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
     @Override
     public int hashCode() {
         return Objects.hash(bricks);
-    }
-
-    @Override
-    protected ValueEnvironment<Bricks> assumeBinaryExpression(
-            ValueEnvironment<Bricks> environment, BinaryOperator operator, ValueExpression left,
-            ValueExpression right, ProgramPoint pp) throws SemanticException {
-        switch (operator) {
-            case COMPARISON_EQ:
-            case STRING_CONCAT:
-                if (left instanceof Identifier)
-                    environment = environment.assign((Identifier) left, right, pp);
-                else if (right instanceof Identifier)
-                    environment = environment.assign((Identifier) right, left, pp);
-                return environment;
-            default:
-                return environment;
-        }
     }
 }

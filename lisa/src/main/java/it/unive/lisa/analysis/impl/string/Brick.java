@@ -281,7 +281,7 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
 
         } while (finalBricks.size() < startSize);
 
-        return finalBricks;
+        return new LinkedList<>(finalBricks);
     }
 
     @Override

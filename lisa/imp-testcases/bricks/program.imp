@@ -66,8 +66,31 @@ class Bricks {
         return x;
     }
 
+    containsTest() {
+        def x = "abcd";
+        // always true
+        if (strcon(x, "a")) {
+            x = "prova";
+        }
+        return x;
+    }
+
+    substringTest(condition) {
+        def s = "";
+
+        if (condition) {
+            s = "12345678";
+        }
+        else {
+            s = "abcdefgh";
+        }
+
+        s = strsub(s, 2, 4);
+    }
+
     // OTHER TESTS
 
+    /*
     fullTest() {
         // string
         def r = "prova";
@@ -117,5 +140,5 @@ class Bricks {
         }
 
         return r;
-    }
+    }*/
 }

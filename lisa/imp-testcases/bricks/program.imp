@@ -1,6 +1,6 @@
 class Bricks {
 
-    /*f0() {
+    f0() {
         return "Test";
     }
 
@@ -64,7 +64,7 @@ class Bricks {
             j = j + 1;
         }
         return x;
-    }*/
+    }
 
     // OTHER TESTS
 

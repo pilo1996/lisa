@@ -12,7 +12,9 @@ import java.util.*;
 
 public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
 
-    // parameter for limiting the length of the number of bricks in a Bricks object, used in widening
+    /**
+     * Parameter for limiting the length of the number of bricks in a Bricks object, used in widening
+     */
     static final int kL = 10;
 
     List<Brick> bricks;
@@ -115,6 +117,10 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
         return false;
     }
 
+    /**
+     * Pads the list of 'this' according to 'other'.
+     * If 'this' contains more bricks than 'other', than returns the same list.
+     */
     private List<Brick> pad(Bricks other) {
         LinkedList<Brick> l1 = new LinkedList<>(this.bricks);
         LinkedList<Brick> l2 = new LinkedList<>(other.bricks);
@@ -151,28 +157,35 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
         return new Bricks(Brick.normalizeList(newList));
     }
 
+    /**
+     * Checks whether a bricks contains only a char
+     */
     private boolean isChar() {
         return bricks.size() == 1 && bricks.get(0).strings.size() == 1 && ((String) bricks.get(0).strings.toArray()[0]).length() == 1;
     }
 
-    private String getString() {
-        return isChar() ? (String) bricks.get(0).strings.toArray()[0] : null;
+    private Character getChar() {
+        return isChar() ? ((String) bricks.get(0).strings.toArray()[0]).charAt(0) : null;
     }
 
     @Override
     protected SemanticDomain.Satisfiability satisfiesBinaryExpression(BinaryOperator operator, Bricks left, Bricks right, ProgramPoint pp) {
 
         if (operator == BinaryOperator.STRING_CONTAINS) {
+            // satisfied for sure
             boolean satisfied;
+
+            // may or may be not satisfied
             boolean unknown = false;
 
-            if (right.isChar()) {
-                String c = right.getString();
+            if (right.isChar() && right.getChar() != null) {
+                String c = right.getChar().toString();
 
                 for (Brick brick : left.bricks) {
                     if (brick.min.equals(0)) {
                         for (String string : brick.strings) {
                             if (string.contains(c)) {
+                                // unknown because brick.min == 0
                                 unknown = true;
                                 break;
                             }
@@ -182,9 +195,11 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
                         satisfied = true;
                         for (String string : brick.strings) {
                             if (!string.contains(c)) {
+                                // not always satisfied because not all strings contain the character
                                 satisfied = false;
                                 break;
                             }
+                            // unknown if at least a string contains the character
                             unknown = true;
                         }
 
@@ -210,12 +225,11 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
     @Override
     protected Bricks evalNonNullConstant(Constant constant, ProgramPoint pp) {
 
+        // we need integer for Substrings
         if (constant.getValue() instanceof Integer) {
             return new Bricks((constant.getValue()).toString());
         }
-        if (constant.getValue() instanceof Number) {
-            return new Bricks((constant.getValue()).toString());
-        }
+
         if (constant.getValue() instanceof String) {
             String s = (String) constant.getValue();
             s = s.substring(1, s.length() - 1);
@@ -240,7 +254,10 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
             int begin = Integer.parseInt((String) middle.bricks.get(0).strings.toArray()[0]);
             int end = Integer.parseInt((String) right.bricks.get(0).strings.toArray()[0]);
 
+            // check if the first brick contains the substring
             if (brick.min.equals(1) && brick.max.equals(1)) {
+
+                // every string in the brick must be valid
                 for (String s: brick.strings) {
                     if (s.length() < end)
                         return new Bricks().top();
@@ -251,6 +268,7 @@ public class Bricks extends BaseNonRelationalValueDomain<Bricks> {
                     substrings.add(string.substring(begin, end));
                 }
 
+                // returns same list of bricks, but the first brick is modified according to the substring
                 List<Brick> newList = new LinkedList<>(brickList);
                 newList.set(0, new Brick(substrings, new Index(1), new Index(1)));
 

@@ -273,7 +273,7 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
     private List<Brick> applyRule5() {
         List<Brick> newList = new LinkedList<>();
 
-        if (!isTop() && !isBottom() && min.ge(1) && max.ge(min)) {
+        if (!isTop() && !isBottom() && min.ge(1) && max.gt(min)) {
             newList.add((new Brick(strings, min, min)).applyRule3());
             newList.add(new Brick(strings, 0, max.minus(min)));
         }
@@ -295,7 +295,7 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
         int startSize;
 
         List<Brick> finalBricks = bricks;
-        List<Brick> tempBricks = new LinkedList<>();
+        List<Brick> tempBricks;
 
         // rule 1, removes empty bricks
         finalBricks.removeIf(EMPTY::equals);
@@ -308,21 +308,21 @@ public class Brick extends BaseNonRelationalValueDomain<Brick> {
             finalBricks = applyRule2(finalBricks);
 
             // rule 3
+            tempBricks = new LinkedList<>();
             for (Brick b: finalBricks) {
                 tempBricks.add(b.applyRule3());
             }
             finalBricks = List.copyOf(tempBricks);
-            tempBricks = new LinkedList<>();
 
             // rule 4
             finalBricks = applyRule4(finalBricks);
 
             // rule 5
+            tempBricks = new LinkedList<>();
             for (Brick b: finalBricks) {
                 tempBricks.addAll(b.applyRule5());
             }
             finalBricks = List.copyOf(tempBricks);
-            tempBricks = new LinkedList<>();
 
         } while (finalBricks.size() < startSize);
 
